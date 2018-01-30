@@ -18,10 +18,12 @@ import {
 	Modal,
 	TouchableOpacity,
 	Image,
-	ActivityIndicator
+	ActivityIndicator,
+	Platform,
+	StatusBar
 } from 'react-native';
 
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types'
 
 export default class Dropdown extends Component {
 
@@ -94,7 +96,7 @@ export default class Dropdown extends Component {
 	render() {
 		return (
 			<View {...this.props}>
-				<View style={[styles.container, this.props.style]} ref={button => this._viewRef = button}>
+				<View style={[styles.container, this.props.style]} ref={v => this._viewRef = v}>
 					{this._renderPlaceholder()}
 					{this._renderButton()}
 				</View>
@@ -113,7 +115,6 @@ export default class Dropdown extends Component {
 	}
 
 	show() {
-		console.log('Showing dropdown.');
 		this._updatePosition(() => {
 			this.setState({
 				showDropdown: true
@@ -122,7 +123,6 @@ export default class Dropdown extends Component {
 	}
 
 	hide() {
-		console.log('Hiding dropdown.');
 		this.setState({
 			showDropdown: false
 		});
@@ -130,7 +130,7 @@ export default class Dropdown extends Component {
 
 	select(idx) {
 		let value = this.props.defaultValue;
-		if (idx === null || this.props.data == null || idx >= this.props.data.length) {
+		if (idx === null || (this.props.data == null && idx >= this.props.data.length)) {
 			idx = this.props.defaultIndex;
 		}
 
@@ -167,14 +167,10 @@ export default class Dropdown extends Component {
 
 	_renderIndicator() {
 		if (this.props.showsIndicator) {
-			// console.log('showing indicator');
 			return (
 				<Image source={{ uri: this.props.indicatorImageUri }} style={styles.indicator} />
 			)
 		}
-		return (
-			<View />
-		)
 	}
 
 	_renderPlaceholder() {
@@ -187,9 +183,6 @@ export default class Dropdown extends Component {
 				</View>
 			)
 		}
-		return (
-			<View />
-		)
 	}
 
 	_renderModal() {
@@ -233,16 +226,12 @@ export default class Dropdown extends Component {
 
 		let style = {
 			height: dropdownHeight,
-			top: showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight),
+			top: (showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight)) - (Platform.OS === "android" ? StatusBar.currentHeight : 0),
 		};
 
 		if (showInLeft) {
 			style.left = this._viewRefFrame.x;
 		} else {
-			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.dropdownStyle).width) || -1;
-			if (dropdownWidth !== -1) {
-				style.width = dropdownWidth;
-			}
 			style.right = rightSpace - this._viewRefFrame.w;
 		}
 
@@ -282,7 +271,7 @@ export default class Dropdown extends Component {
 								}
 							}}
 						>
-							<Text style={styles.rowText}>
+							<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }]}>
 								{item}
 							</Text>
 						</TouchableHighlight>
@@ -341,12 +330,10 @@ const styles = StyleSheet.create({
 	},
 	dropdown: {
 		position: 'absolute',
-		height: (32 + StyleSheet.hairlineWidth) * 5,
+		height: (32 + StyleSheet.hairlineWidth) * 5, // Default
 		borderWidth: StyleSheet.hairlineWidth,
 		borderColor: 'lightgray',
 		justifyContent: 'center',
-		borderColor: 'lightgray',
-		borderRadius: 2,
 		backgroundColor: 'white',
 	},
 	list: {
@@ -363,7 +350,7 @@ const styles = StyleSheet.create({
 		color: 'gray',
 		backgroundColor: 'white',
 		textAlign: 'center',
-		textAlignVertical: 'center'
+		textAlignVertical: 'center',
 	},
 	highlightedRowText: {
 		color: 'black'

@@ -9,6 +9,7 @@ import {
 	StyleSheet,
 	View,
 	Text,
+	AppRegistry,
 } from 'react-native';
 
 import Dropdown from './Dropdown';
@@ -19,12 +20,14 @@ export default class App extends React.Component {
 		super(props);
 
 		this.state = {
-			data: [] 
+			qts: [],
+			siz: [] 
 		};
 
-		fetch('https://api.myjson.com/bins/xbie5').then((resp) => resp.json()).then((json) => {
+		fetch('https://api.myjson.com/bins/u475p').then((resp) => resp.json()).then((json) => {
 			this.setState({
-				data: json['numbers']
+				qts: json['quantity'],
+				siz: json['ringSizes']
 			});
 		}).catch((error) => {
 			console.log(error);
@@ -35,16 +38,37 @@ export default class App extends React.Component {
 		return (
 			<View style={styles.container}>
 				<Dropdown
-					// showsPlaceholder={true}
-					placeholder='Plaaaaaceholder'
-					defaultValue='Ring Size'
+					showsPlaceholder={true}
+					placeholder='Quantity'
+					defaultValue='1'
 					showsIndicator={true}
-					data={this.state.data}
+					data={this.state.qty}
 					onSelect={(item) => {
 						console.log('Selected value: ' + item);
 					}}
 					style={{ 
-						width: 144
+						width: 96
+					}}
+				/>
+				<Dropdown
+					// showsPlaceholder={true}
+					placeholder='Ring Size'
+					defaultValue='Select...'
+					showsIndicator={true}
+					data={this.state.siz}
+					onSelect={(item) => {
+						console.log('Selected value: ' + item);
+					}}
+					style={{ 
+						width: 96
+					}}
+					dropdownStyle={{
+						shadowOpacity: 0.3,
+						shadowRadius: 2,
+						shadowOffset: {
+							height: 1,
+						},
+						elevation: 6,
 					}}
 				/>
 			</View>
@@ -52,11 +76,23 @@ export default class App extends React.Component {
 	}
 }
 
+AppRegistry.registerComponent('Demo', () => App);
+
+
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		flexDirection: 'row',
+		justifyContent: 'space-around',
 		marginTop: 64,
+		marginHorizontal: 12,
 		padding: 32,
-		backgroundColor: '#f2f2f2',
+		backgroundColor: '#fcf9ee',
+		shadowOpacity: 0.3,
+		shadowRadius: 2,
+		shadowOffset: {
+			height: 1,
+		},
+		elevation: 4,
 	}
 });
