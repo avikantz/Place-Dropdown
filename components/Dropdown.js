@@ -11,8 +11,9 @@ import {
 	Dimensions,
 	View,
 	Text,
-	ListView,
+	FlatList,
 	TouchableNativeFeedback,
+	TouchableWithoutFeedback,
 	TouchableHighlight,
 	Modal,
 	TouchableOpacity,
@@ -35,6 +36,7 @@ export default class Dropdown extends Component {
 		showsIndicator: PropTypes.bool,
 
 		style: PropTypes.object,
+		dropdownStyle: PropTypes.object,
 
 		data: PropTypes.array,
 
@@ -48,7 +50,7 @@ export default class Dropdown extends Component {
 		placeholder: 'Select',
 		showsPlaceholder: false,
 
-		indicatorImageUri: 'https://unicalendar.uni.edu/profiles/uni_default_install/modules/custom/uni_blocks_antares/images/down_arrow.png',
+		indicatorImageUri: 'https://i.imgur.com/RVuQJh0.png',
 		showsIndicator: true,
 
 		data: ['1', '2', '3', '4', '5', '6', '7', '8']
@@ -57,6 +59,8 @@ export default class Dropdown extends Component {
 	constructor(props) {
 		super(props);
 
+		this._viewRef = null;
+		this._viewRefFrame = null;
 		this._nextIndex = null;
 		this._nextValue = null;
 
@@ -84,14 +88,13 @@ export default class Dropdown extends Component {
 			loading: newProps.data == null,
 			selectedIndex: selectedIndex,
 			selectedValue: selectedValue,
-			showDropdown: false,
 		});
 	}
 
 	render() {
 		return (
 			<View {...this.props}>
-				<View style={styles.container}>
+				<View style={[styles.container, this.props.style]} ref={button => this._viewRef = button}>
 					{this._renderPlaceholder()}
 					{this._renderButton()}
 				</View>
@@ -101,15 +104,16 @@ export default class Dropdown extends Component {
 	}
 
 	_updatePosition(callback) {
-		if (this._button && this._button.measure) {
-			this._button.measure((fx, fy, width, height, px, py) => {
-				this._buttonFrame = { x: px, y: py, w: width, h: height };
+		if (this._viewRef && this._viewRef.measure) {
+			this._viewRef.measure((fx, fy, width, height, px, py) => {
+				this._viewRefFrame = { x: px, y: py, w: width, h: height };
 				callback && callback();
 			});
 		}
 	}
 
 	show() {
+		console.log('Showing dropdown.');
 		this._updatePosition(() => {
 			this.setState({
 				showDropdown: true
@@ -118,10 +122,9 @@ export default class Dropdown extends Component {
 	}
 
 	hide() {
-		this._updatePosition(() => {
-			this.setState({
-				showDropdown: false
-			});
+		console.log('Hiding dropdown.');
+		this.setState({
+			showDropdown: false
 		});
 	}
 
@@ -132,11 +135,11 @@ export default class Dropdown extends Component {
 		}
 
 		if (idx >= 0) {
-			value = this.props.options[idx].toString();
+			value = this.props.data[idx].toString();
 		}
 
-		this._nextIndex = idx;
 		this._nextValue = value;
+		this._nextIndex = idx;
 
 		this.setState({
 			selectedValue: value,
@@ -145,29 +148,28 @@ export default class Dropdown extends Component {
 	}
 
 	_renderButton() {
+		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : { };
 		return (
 			<TouchableOpacity
-				ref={button => this._button = button}
 				onPress={() => {
 					this.show();
 				}}
 			>
-				{
-					<View styles={styles.button}>
-						<Text style={styles.buttonText} numberOfLines={1}>
-							{this.state.selectedValue}
-						</Text>
-						{this._renderIndicator()}
-					</View>
-				}
+				<View style={styles.button}>
+					<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
+						{this.state.selectedValue}
+					</Text>
+					{this._renderIndicator()}
+				</View>
 			</TouchableOpacity>
 		)
 	}
 
 	_renderIndicator() {
 		if (this.props.showsIndicator) {
+			// console.log('showing indicator');
 			return (
-				<Image source={this.props.Image} style={styles.indicator} />
+				<Image source={{ uri: this.props.indicatorImageUri }} style={styles.indicator} />
 			)
 		}
 		return (
@@ -177,11 +179,13 @@ export default class Dropdown extends Component {
 
 	_renderPlaceholder() {
 		if (this.props.showsPlaceholder) {
-			<View style={styles.placeholderContainer}>
-				<Text style={styles.placeholderText}>
-					{this.state.placeholder}
-				</Text>
-			</View>
+			return (
+				<View style={styles.placeholderContainer}>
+					<Text style={styles.placeholderText}>
+						{this.props.placeholder}
+					</Text>
+				</View>
+			)
 		}
 		return (
 			<View />
@@ -189,7 +193,7 @@ export default class Dropdown extends Component {
 	}
 
 	_renderModal() {
-		if (this.state.showDropdown && this._buttonFrame) {
+		if (this.state.showDropdown && this._viewRefFrame) {
 			const frameStyle = this._calcPosition();
 			return (
 				<Modal animationType='fade'
@@ -200,11 +204,12 @@ export default class Dropdown extends Component {
 					}}
 					supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}>
 					<TouchableWithoutFeedback
+						disabled={!this.state.showDropdown}
 						onPress={() => {
 							this.hide();
 						}}>
 						<View style={styles.modal}>
-							<View style={styles.dropdown}>
+							<View style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
 								{this.state.loading ? this._renderLoading() : this._renderDropdown()}
 							</View>
 						</View>
@@ -219,90 +224,75 @@ export default class Dropdown extends Component {
 		const windowWidth = dimensions.width;
 		const windowHeight = dimensions.height;
 
-		const dropdownHeight = 180;
+		const dropdownHeight = 160;
 
-		const bottomSpace = windowHeight - this._buttonFrame.y - this._buttonFrame.h;
-		const rightSpace = windowWidth - this._buttonFrame.x;
-		const showInBottom = bottomSpace >= dropdownHeight || bottomSpace >= this._buttonFrame.y;
-		const showInLeft = rightSpace >= this._buttonFrame.x;
+		const bottomSpace = windowHeight - this._viewRefFrame.y - this._viewRefFrame.h;
+		const rightSpace = windowWidth - this._viewRefFrame.x;
+		const showInBottom = bottomSpace >= dropdownHeight || bottomSpace >= this._viewRefFrame.y;
+		const showInLeft = rightSpace >= this._viewRefFrame.x;
 
 		let style = {
 			height: dropdownHeight,
-			top: showInBottom ? this._buttonFrame.y + this._buttonFrame.h : Math.max(0, this._buttonFrame.y - dropdownHeight),
+			top: showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight),
 		};
 
 		if (showInLeft) {
-			style.left = this._buttonFrame.x;
+			style.left = this._viewRefFrame.x;
 		} else {
-			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.style).width) || -1;
+			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.dropdownStyle).width) || -1;
 			if (dropdownWidth !== -1) {
 				style.width = dropdownWidth;
 			}
-			style.right = rightSpace - this._buttonFrame.w;
+			style.right = rightSpace - this._viewRefFrame.w;
 		}
 
 		if (this.props.adjustFrame) {
 			style = this.props.adjustFrame(style) || style;
 		}
 
+		style.width = this._viewRefFrame.w;
 		return style;
 	}
 
 	_renderLoading() {
 		return (
 			<ActivityIndicator size='small' />
-		)
+		);
 	}
 
 	_renderDropdown() {
 		return (
-			<ListView
+			<FlatList
 				scrollEnabled={true}
 				style={styles.list}
-				dataSource={this._dataSource}
-				renderRow={this._renderDropdown.bind(this)}
-				renderSeparator={(sectionID, rowID, adjacentRowHighlighted) => {
-					const key = `spr_${rowID}`;
-					return (<View style={styles.separator}
-						key={key}
-					/>);
-				}}
+				data={this.props.data}
+				renderItem={ ({ item, index }) => (
+						<TouchableHighlight
+							highlighted={(index == this.state.selectedIndex)}
+							onPress={() => {
+								const { onSelect } = this.props;
+								if (!onSelect || onSelect(item, index) !== false) {
+									this._nextValue = item;
+									this._nextIndex = index;
+									this.setState({
+										selectedValue: item.toString(),
+										selectedIndex: index,
+									});
+									this.hide();
+								}
+							}}
+						>
+							<Text style={styles.rowText}>
+								{item}
+							</Text>
+						</TouchableHighlight>
+					)
+				}
+				keyExtractor={ item => item }
 				automaticallyAdjustContentInsets={false}
 				showsVerticalScrollIndicator={true}
+				keyboardShouldPersistTaps={this.props.keyboardShouldPersistTaps}
 			/>
-		);
-	}
-
-	get _dataSource() {
-		const datasource = new ListView.DataSource({
-			rowHasChanged: (r1, r2) => r1 !== r2
-		});
-		return ds.cloneWithRows(this.props.data);
-	}
-
-	_renderRow(rowData, sectionID, rowID, highlightRow) {
-		return (
-			<TouchableHighlight
-				key={`row_${rowID}`}
-				highlighted={(rowID == this.state.selectedIndex)}
-				onPress={(rowData, sectionID, rowID, highlightRow) => {
-					const { onSelect } = this.props;
-					if (!onSelect || onSelect(rowID, rowData) !== false) {
-						highlightRow(sectionID, rowID);
-						this._nextValue = rowData;
-						this._nextIndex = rowID;
-						this.setState({
-							selectedValue: rowData.toString(),
-							selectedIndex: rowID,
-							showDropdown: false
-						});
-					}
-				}}
-			>
-				<Text style={styles.rowText}>
-					{rowData}
-				</Text>
-			</TouchableHighlight>
 		);
 	}
 
@@ -310,40 +300,54 @@ export default class Dropdown extends Component {
 
 const styles = StyleSheet.create({
 	container: {
+		padding: 8,
+		position: 'absolute',
 		flex: 1,
 		flexDirection: 'column',
-		alignItems: 'center',
+		borderWidth: 0.7,
+		borderColor: '#959595',
+		width: 80,
 	},
 	button: {
 		flex: 1,
 		flexDirection: 'row',
-		alignItems: 'flex-end',
+		justifyContent: 'space-between'
 	},
 	buttonText: {
-		textAlign: 'left',
+		textAlign: 'center',
 		fontSize: 12,
+		flexGrow: 1,
 	},
 	indicator: {
-		width: 16,
-		height: 16,
+		width: 9,
+		height: 9,
+		margin: 3,
+		alignSelf: 'flex-end',
 	},
 	placeholderContainer: {
-		flex: 1,
+		alignSelf: 'flex-start',
 		height: 12,
+		marginBottom: 4,
 	},
 	placeholderText: {
 		textAlign: 'left',
-		fontSize: 8,
+		fontSize: 9,
 	},
 	modal: {
 		flexGrow: 1,
 	},
+	loading: {
+		alignSelf: 'center'
+	},
 	dropdown: {
 		position: 'absolute',
-		height: (32 + StyleSheet.hairlineWidth) * 6,
+		height: (32 + StyleSheet.hairlineWidth) * 5,
 		borderWidth: StyleSheet.hairlineWidth,
 		borderColor: 'lightgray',
 		justifyContent: 'center',
+		borderColor: 'lightgray',
+		borderRadius: 2,
+		backgroundColor: 'white',
 	},
 	list: {
 		flex: 1,
@@ -353,7 +357,15 @@ const styles = StyleSheet.create({
 		backgroundColor: 'lightgray'
 	},
 	rowText: {
-		textAlign: 'left',
 		fontSize: 10,
-	}
+		paddingHorizontal: 6,
+		paddingVertical: 10,
+		color: 'gray',
+		backgroundColor: 'white',
+		textAlign: 'center',
+		textAlignVertical: 'center'
+	},
+	highlightedRowText: {
+		color: 'black'
+	},
 });
