@@ -40,7 +40,7 @@ export default class App extends React.Component {
 				<Dropdown
 					showsPlaceholder={true}
 					placeholder='Quantity'
-					defaultValue='1'
+					defaultValue=''
 					showsIndicator={true}
 					data={this.state.qty}
 					onSelect={(item) => {
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
 		marginTop: 64,
 		marginHorizontal: 12,
 		padding: 32,
-		backgroundColor: '#fcf9ee',
 		shadowOpacity: 0.3,
 		shadowRadius: 2,
 		shadowOffset: {

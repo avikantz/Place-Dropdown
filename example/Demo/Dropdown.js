@@ -20,7 +20,8 @@ import {
 	Image,
 	ActivityIndicator,
 	Platform,
-	StatusBar
+	StatusBar,
+	Animated
 } from 'react-native';
 
 import PropTypes from 'prop-types'
@@ -71,6 +72,7 @@ export default class Dropdown extends Component {
 			selectedValue: props.defaultValue,
 			showDropdown: false,
 			loading: props.data === null || props.data === undefined,
+			placeholderAnimatorValue: 0,
 		};
 	}
 
@@ -86,6 +88,10 @@ export default class Dropdown extends Component {
 		this._nextValue = null;
 		this._nextIndex = null;
 
+		if (selectedValue !== '') {
+			// Animated.timing(this.state.placeholderAnimatorValue, {toValue: 0, duration: 1500}).start();
+		}
+
 		this.setState({
 			loading: newProps.data == null,
 			selectedIndex: selectedIndex,
@@ -96,10 +102,7 @@ export default class Dropdown extends Component {
 	render() {
 		return (
 			<View {...this.props}>
-				<View style={[styles.container, this.props.style]} ref={v => this._viewRef = v}>
-					{this._renderPlaceholder()}
-					{this._renderButton()}
-				</View>
+				{this._renderButton()}
 				{this._renderModal()}
 			</View>
 		)
@@ -148,20 +151,23 @@ export default class Dropdown extends Component {
 	}
 
 	_renderButton() {
-		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : { };
+		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : {};
 		return (
-			<TouchableOpacity
+			<TouchableWithoutFeedback
 				onPress={() => {
 					this.show();
 				}}
 			>
-				<View style={styles.button}>
-					<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
-						{this.state.selectedValue}
-					</Text>
+				<View style={[styles.container, this.props.style]} ref={v => this._viewRef = v}>
+					<View style={styles.button}>
+						{this._renderPlaceholder()}
+						<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
+							{this.state.selectedValue}
+						</Text>
+					</View>
 					{this._renderIndicator()}
 				</View>
-			</TouchableOpacity>
+			</TouchableWithoutFeedback>
 		)
 	}
 
@@ -175,8 +181,9 @@ export default class Dropdown extends Component {
 
 	_renderPlaceholder() {
 		if (this.props.showsPlaceholder) {
+			var placeStyle = (this.state.selectedValue == '') ? { transform: [ { translateY: 9 * this.state.placeholderAnimatorValue }, { translateX: 8 * this.state.placeholderAnimatorValue }, { scaleX: Math.max(this.state.placeholderAnimatorValue * 4/3, 1) }, { scaleY: Math.max(this.state.placeholderAnimatorValue * 4/3, 1) } ] } : {};
 			return (
-				<View style={styles.placeholderContainer}>
+				<View style={[styles.placeholderContainer, placeStyle]}>
 					<Text style={styles.placeholderText}>
 						{this.props.placeholder}
 					</Text>
@@ -255,29 +262,29 @@ export default class Dropdown extends Component {
 				scrollEnabled={true}
 				style={styles.list}
 				data={this.props.data}
-				renderItem={ ({ item, index }) => (
-						<TouchableHighlight
-							highlighted={(index == this.state.selectedIndex)}
-							onPress={() => {
-								const { onSelect } = this.props;
-								if (!onSelect || onSelect(item, index) !== false) {
-									this._nextValue = item;
-									this._nextIndex = index;
-									this.setState({
-										selectedValue: item.toString(),
-										selectedIndex: index,
-									});
-									this.hide();
-								}
-							}}
-						>
-							<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }]}>
-								{item}
-							</Text>
-						</TouchableHighlight>
-					)
+				renderItem={({ item, index }) => (
+					<TouchableHighlight
+						highlighted={(index == this.state.selectedIndex)}
+						onPress={() => {
+							const { onSelect } = this.props;
+							if (!onSelect || onSelect(item, index) !== false) {
+								this._nextValue = item;
+								this._nextIndex = index;
+								this.setState({
+									selectedValue: item.toString(),
+									selectedIndex: index,
+								});
+								this.hide();
+							}
+						}}
+					>
+						<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }]}>
+							{item}
+						</Text>
+					</TouchableHighlight>
+				)
 				}
-				keyExtractor={ item => item }
+				keyExtractor={item => item}
 				automaticallyAdjustContentInsets={false}
 				showsVerticalScrollIndicator={true}
 				keyboardShouldPersistTaps={this.props.keyboardShouldPersistTaps}
@@ -292,15 +299,16 @@ const styles = StyleSheet.create({
 		padding: 8,
 		position: 'absolute',
 		flex: 1,
-		flexDirection: 'column',
+		flexDirection: 'row',
 		borderWidth: 0.7,
 		borderColor: '#959595',
 		width: 80,
+		justifyContent: 'center',
 	},
 	button: {
 		flex: 1,
-		flexDirection: 'row',
-		justifyContent: 'space-between'
+		flexDirection: 'column',
+		justifyContent: 'space-between',
 	},
 	buttonText: {
 		textAlign: 'center',
@@ -311,7 +319,7 @@ const styles = StyleSheet.create({
 		width: 9,
 		height: 9,
 		margin: 3,
-		alignSelf: 'flex-end',
+		alignSelf: 'center',
 	},
 	placeholderContainer: {
 		alignSelf: 'flex-start',
