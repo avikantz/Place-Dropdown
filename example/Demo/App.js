@@ -13,24 +13,38 @@ import {
 
 import Dropdown from './Dropdown';
 
-const sample_data = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-
 export default class App extends React.Component {
 
 	constructor(props) {
 		super(props);
+
+		this.state = {
+			data: [] 
+		};
+
+		fetch('https://api.myjson.com/bins/xbie5').then((resp) => resp.json()).then((json) => {
+			this.setState({
+				data: json['numbers']
+			});
+		}).catch((error) => {
+			console.log(error);
+		});
 	}
 
 	render() {
 		return (
 			<View style={styles.container}>
 				<Dropdown
-					showsPlaceholder={true}
+					// showsPlaceholder={true}
 					placeholder='Plaaaaaceholder'
+					defaultValue='Ring Size'
 					showsIndicator={true}
-					data={sample_data}
-					onSelect={() => {
-						console.log('row pressed');
+					data={this.state.data}
+					onSelect={(item) => {
+						console.log('Selected value: ' + item);
+					}}
+					style={{ 
+						width: 144
 					}}
 				/>
 			</View>
@@ -43,6 +57,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 		marginTop: 64,
 		padding: 32,
-		backgroundColor: '#f2f2f2'
+		backgroundColor: '#f2f2f2',
 	}
 });

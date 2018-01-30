@@ -36,6 +36,7 @@ export default class Dropdown extends Component {
 		showsIndicator: PropTypes.bool,
 
 		style: PropTypes.object,
+		dropdownStyle: PropTypes.object,
 
 		data: PropTypes.array,
 
@@ -49,7 +50,7 @@ export default class Dropdown extends Component {
 		placeholder: 'Select',
 		showsPlaceholder: false,
 
-		indicatorImageUri: 'https://unicalendar.uni.edu/profiles/uni_default_install/modules/custom/uni_blocks_antares/images/down_arrow.png',
+		indicatorImageUri: 'https://i.imgur.com/RVuQJh0.png',
 		showsIndicator: true,
 
 		data: ['1', '2', '3', '4', '5', '6', '7', '8']
@@ -58,8 +59,8 @@ export default class Dropdown extends Component {
 	constructor(props) {
 		super(props);
 
-		this._button = null;
-		this._buttonFrame = null;
+		this._viewRef = null;
+		this._viewRefFrame = null;
 		this._nextIndex = null;
 		this._nextValue = null;
 
@@ -93,7 +94,7 @@ export default class Dropdown extends Component {
 	render() {
 		return (
 			<View {...this.props}>
-				<View style={styles.container}>
+				<View style={[styles.container, this.props.style]} ref={button => this._viewRef = button}>
 					{this._renderPlaceholder()}
 					{this._renderButton()}
 				</View>
@@ -103,9 +104,9 @@ export default class Dropdown extends Component {
 	}
 
 	_updatePosition(callback) {
-		if (this._button && this._button.measure) {
-			this._button.measure((fx, fy, width, height, px, py) => {
-				this._buttonFrame = { x: px, y: py, w: width, h: height };
+		if (this._viewRef && this._viewRef.measure) {
+			this._viewRef.measure((fx, fy, width, height, px, py) => {
+				this._viewRefFrame = { x: px, y: py, w: width, h: height };
 				callback && callback();
 			});
 		}
@@ -147,15 +148,15 @@ export default class Dropdown extends Component {
 	}
 
 	_renderButton() {
+		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : { };
 		return (
 			<TouchableOpacity
-				ref={button => this._button = button}
 				onPress={() => {
 					this.show();
 				}}
 			>
 				<View style={styles.button}>
-					<Text style={styles.buttonText} numberOfLines={1}>
+					<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
 						{this.state.selectedValue}
 					</Text>
 					{this._renderIndicator()}
@@ -192,7 +193,7 @@ export default class Dropdown extends Component {
 	}
 
 	_renderModal() {
-		if (this.state.showDropdown && this._buttonFrame) {
+		if (this.state.showDropdown && this._viewRefFrame) {
 			const frameStyle = this._calcPosition();
 			return (
 				<Modal animationType='fade'
@@ -208,7 +209,7 @@ export default class Dropdown extends Component {
 							this.hide();
 						}}>
 						<View style={styles.modal}>
-							<View style={[styles.dropdown, frameStyle]}>
+							<View style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
 								{this.state.loading ? this._renderLoading() : this._renderDropdown()}
 							</View>
 						</View>
@@ -223,32 +224,33 @@ export default class Dropdown extends Component {
 		const windowWidth = dimensions.width;
 		const windowHeight = dimensions.height;
 
-		const dropdownHeight = 180;
+		const dropdownHeight = 160;
 
-		const bottomSpace = windowHeight - this._buttonFrame.y - this._buttonFrame.h;
-		const rightSpace = windowWidth - this._buttonFrame.x;
-		const showInBottom = bottomSpace >= dropdownHeight || bottomSpace >= this._buttonFrame.y;
-		const showInLeft = rightSpace >= this._buttonFrame.x;
+		const bottomSpace = windowHeight - this._viewRefFrame.y - this._viewRefFrame.h;
+		const rightSpace = windowWidth - this._viewRefFrame.x;
+		const showInBottom = bottomSpace >= dropdownHeight || bottomSpace >= this._viewRefFrame.y;
+		const showInLeft = rightSpace >= this._viewRefFrame.x;
 
 		let style = {
 			height: dropdownHeight,
-			top: showInBottom ? this._buttonFrame.y + this._buttonFrame.h : Math.max(0, this._buttonFrame.y - dropdownHeight),
+			top: showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight),
 		};
 
 		if (showInLeft) {
-			style.left = this._buttonFrame.x;
+			style.left = this._viewRefFrame.x;
 		} else {
-			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.style).width) || -1;
+			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.dropdownStyle).width) || -1;
 			if (dropdownWidth !== -1) {
 				style.width = dropdownWidth;
 			}
-			style.right = rightSpace - this._buttonFrame.w;
+			style.right = rightSpace - this._viewRefFrame.w;
 		}
 
 		if (this.props.adjustFrame) {
 			style = this.props.adjustFrame(style) || style;
 		}
 
+		style.width = this._viewRefFrame.w;
 		return style;
 	}
 
@@ -302,27 +304,25 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		flex: 1,
 		flexDirection: 'column',
-		alignItems: 'flex-start',
-		borderWidth: StyleSheet.hairlineWidth,
+		borderWidth: 0.7,
 		borderColor: '#959595',
-		borderRadius: 2,
-		width: 120,
+		width: 80,
 	},
 	button: {
 		flex: 1,
 		flexDirection: 'row',
-		justifyContent: 'flex-start'
+		justifyContent: 'space-between'
 	},
 	buttonText: {
-		textAlign: 'left',
+		textAlign: 'center',
 		fontSize: 12,
-		fontWeight: 'bold'
+		flexGrow: 1,
 	},
 	indicator: {
-		width: 12,
-		height: 12,
-		marginTop: 2,
-		marginLeft: 20,
+		width: 9,
+		height: 9,
+		margin: 3,
+		alignSelf: 'flex-end',
 	},
 	placeholderContainer: {
 		alignSelf: 'flex-start',
@@ -341,14 +341,13 @@ const styles = StyleSheet.create({
 	},
 	dropdown: {
 		position: 'absolute',
-		height: (32 + StyleSheet.hairlineWidth) * 6,
+		height: (32 + StyleSheet.hairlineWidth) * 5,
 		borderWidth: StyleSheet.hairlineWidth,
 		borderColor: 'lightgray',
 		justifyContent: 'center',
 		borderColor: 'lightgray',
 		borderRadius: 2,
 		backgroundColor: 'white',
-		width: 60,
 	},
 	list: {
 		flex: 1,
