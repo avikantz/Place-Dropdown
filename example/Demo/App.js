@@ -24,7 +24,7 @@ export default class App extends React.Component {
 			siz: [] 
 		};
 
-		fetch('https://api.myjson.com/bins/u475p').then((resp) => resp.json()).then((json) => {
+		fetch('https://api.myjson.com/bins/mpuf9').then((resp) => resp.json()).then((json) => {
 			this.setState({
 				qts: json['quantity'],
 				siz: json['ringSizes']
@@ -40,9 +40,9 @@ export default class App extends React.Component {
 				<Dropdown
 					showsPlaceholder={true}
 					placeholder='Quantity'
-					defaultValue=''
+					defaultValue=' '
 					showsIndicator={true}
-					data={this.state.qty}
+					data={this.state.qts}
 					onSelect={(item) => {
 						console.log('Selected value: ' + item);
 					}}
@@ -56,8 +56,8 @@ export default class App extends React.Component {
 					defaultValue='Select...'
 					showsIndicator={true}
 					data={this.state.siz}
-					onSelect={(item) => {
-						console.log('Selected value: ' + item);
+					onSelect={(item, index) => {
+						console.log('Selected value: ' + item + ', at index: ' + index);
 					}}
 					style={{ 
 						width: 96

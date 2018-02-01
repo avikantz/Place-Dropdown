@@ -12,7 +12,6 @@ import {
 	View,
 	Text,
 	FlatList,
-	TouchableNativeFeedback,
 	TouchableWithoutFeedback,
 	TouchableHighlight,
 	Modal,
@@ -21,7 +20,6 @@ import {
 	ActivityIndicator,
 	Platform,
 	StatusBar,
-	Animated
 } from 'react-native';
 
 import PropTypes from 'prop-types'
@@ -29,8 +27,8 @@ import PropTypes from 'prop-types'
 export default class Dropdown extends Component {
 
 	static propTypes = {
-		defaultIndex: PropTypes.number,
-		defaultValue: PropTypes.string,
+		defaultIndex: PropTypes.number,			// -1 initially
+		defaultValue: PropTypes.string,			
 
 		placeholder: PropTypes.string,
 		showsPlaceholder: PropTypes.bool,
@@ -38,25 +36,34 @@ export default class Dropdown extends Component {
 		indicatorImageUri: PropTypes.string,
 		showsIndicator: PropTypes.bool,
 
-		style: PropTypes.object,
-		dropdownStyle: PropTypes.object,
+		itemsShown: PropTypes.number,			// Number of items shown by the dropdown, minimum of this value and number of items in data; initially 5
 
-		data: PropTypes.array,
+		style: PropTypes.object, 				// Container style
+		placeholderStyle: PropTypes.object, 	// Placeholder text
+		textStyle: PropTypes.object, 			// Row text
+		indicatorStyle: PropTypes.object, 		// Indicator
+		rowStyle: PropTypes.object, 			// Dropdown rows
+		dropdownStyle: PropTypes.object, 		// Dropdown container
+		modalStyle: PropTypes.object, 			// Modal dropdown
 
-		onSelect: PropTypes.func
+		data: PropTypes.array,					// Array of items to display
+
+		onSelect: PropTypes.func				// Callback; returns 'item' and 'index'
 	};
 
 	static defaultProps = {
 		defaultIndex: -1,
-		defaultValue: 'Select...',
+		defaultValue: ' ',
 
 		placeholder: 'Select',
 		showsPlaceholder: false,
 
+		itemsShown: 5,
+
 		indicatorImageUri: 'https://i.imgur.com/RVuQJh0.png',
 		showsIndicator: true,
 
-		data: ['1', '2', '3', '4', '5', '6', '7', '8']
+		data: ['1', '2', '3', '4']
 	};
 
 	constructor(props) {
@@ -69,27 +76,30 @@ export default class Dropdown extends Component {
 
 		this.state = {
 			selectedIndex: props.defaultIndex,
-			selectedValue: props.defaultValue,
+			selectedValue: props.showsPlaceholder ? ' ' : props.defaultValue,
 			showDropdown: false,
 			loading: props.data === null || props.data === undefined,
-			placeholderAnimatorValue: 0,
+			placeholderTransfromValue: props.defaultIndex === -1 ? 1 : 0,
 		};
 	}
 
 	componentWillReceiveProps(newProps) {
-		let selectedValue = this._nextValue == null ? this.state.selectedValue : this._nextValue.toString();
-		let selectedIndex = this._nextIndex == null ? this.state.selectedIndex : this._nextIndex;
+		let selectedValue = this._nextValue === null ? this.state.selectedValue : this._nextValue.toString();
+		let selectedIndex = this._nextIndex === null ? this.state.selectedIndex : this._nextIndex;
 		if (selectedIndex < 0) {
 			selectedIndex = newProps.defaultIndex;
 			if (selectedIndex < 0) {
-				selectedValue = newProps.defaultValue;
+				selectedValue = newProps.showsPlaceholder ? ' ' : newProps.defaultValue;
 			}
 		}
 		this._nextValue = null;
 		this._nextIndex = null;
 
-		if (selectedValue !== '') {
-			// Animated.timing(this.state.placeholderAnimatorValue, {toValue: 0, duration: 1500}).start();
+		if (selectedIndex === -1) {
+			this.animatePlaceholderToValue(1);
+
+		} else {
+			this.animatePlaceholderToValue(0);
 		}
 
 		this.setState({
@@ -97,6 +107,21 @@ export default class Dropdown extends Component {
 			selectedIndex: selectedIndex,
 			selectedValue: selectedValue,
 		});
+	}
+
+	animatePlaceholderToValue(value) {
+		if (this.state.selectedIndex > -1) {
+			this.setState({placeholderTransfromValue: 0});
+			return;
+		}
+		if (Math.abs(this.state.placeholderTransfromValue - value) <= 0.01) { 
+			this.setState({placeholderTransfromValue: value});
+			return;
+		}
+		setTimeout(() => {
+			this.setState({ placeholderTransfromValue: this.state.placeholderTransfromValue + (value === 0 ? -1/15 : 1/15) })
+			this.animatePlaceholderToValue(value);
+		}, 1/2000);
 	}
 
 	render() {
@@ -118,6 +143,10 @@ export default class Dropdown extends Component {
 	}
 
 	show() {
+		console.log('showing dropdown');
+		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
+			this.animatePlaceholderToValue(0);
+		}
 		this._updatePosition(() => {
 			this.setState({
 				showDropdown: true
@@ -126,6 +155,10 @@ export default class Dropdown extends Component {
 	}
 
 	hide() {
+		console.log('hiding dropdown');
+		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
+			this.animatePlaceholderToValue(1);
+		}
 		this.setState({
 			showDropdown: false
 		});
@@ -159,9 +192,9 @@ export default class Dropdown extends Component {
 				}}
 			>
 				<View style={[styles.container, this.props.style]} ref={v => this._viewRef = v}>
-					<View style={styles.button}>
+					<View style={styles.textContainer}>
 						{this._renderPlaceholder()}
-						<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
+						<Text style={[styles.textStyle, placeStyle, this.props.textStyle]} numberOfLines={1}>
 							{this.state.selectedValue}
 						</Text>
 					</View>
@@ -174,17 +207,17 @@ export default class Dropdown extends Component {
 	_renderIndicator() {
 		if (this.props.showsIndicator) {
 			return (
-				<Image source={{ uri: this.props.indicatorImageUri }} style={styles.indicator} />
+				<Image source={{ uri: this.props.indicatorImageUri }} style={[styles.indicator, this.props.indicatorStyle]} />
 			)
 		}
 	}
 
 	_renderPlaceholder() {
 		if (this.props.showsPlaceholder) {
-			var placeStyle = (this.state.selectedValue == '') ? { transform: [ { translateY: 9 * this.state.placeholderAnimatorValue }, { translateX: 8 * this.state.placeholderAnimatorValue }, { scaleX: Math.max(this.state.placeholderAnimatorValue * 4/3, 1) }, { scaleY: Math.max(this.state.placeholderAnimatorValue * 4/3, 1) } ] } : {};
+			var placeStyle = (!this.state.selectedIndex || this.state.selectedIndex == -1) ? { transform: [ { translateY: parseInt(9.0 * this.state.placeholderTransfromValue) }, { translateX: parseInt(8.0 * this.state.placeholderTransfromValue) }, { scaleX: Math.max(this.state.placeholderTransfromValue * 4/3, 1) }, { scaleY: Math.max(this.state.placeholderTransfromValue * 4/3, 1) } ] } : {};
 			return (
 				<View style={[styles.placeholderContainer, placeStyle]}>
-					<Text style={styles.placeholderText}>
+					<Text style={[styles.placeholderText, this.props.placeholderStyle]}>
 						{this.props.placeholder}
 					</Text>
 				</View>
@@ -208,7 +241,7 @@ export default class Dropdown extends Component {
 						onPress={() => {
 							this.hide();
 						}}>
-						<View style={styles.modal}>
+						<View style={[styles.modal, this.props.modalStyle]}>
 							<View style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
 								{this.state.loading ? this._renderLoading() : this._renderDropdown()}
 							</View>
@@ -224,7 +257,7 @@ export default class Dropdown extends Component {
 		const windowWidth = dimensions.width;
 		const windowHeight = dimensions.height;
 
-		const dropdownHeight = 160;
+		const dropdownHeight = (32 + StyleSheet.hairlineWidth) * Math.min(5, this.props.data ? this.props.data.length : 5);
 
 		const bottomSpace = windowHeight - this._viewRefFrame.y - this._viewRefFrame.h;
 		const rightSpace = windowWidth - this._viewRefFrame.x;
@@ -278,7 +311,7 @@ export default class Dropdown extends Component {
 							}
 						}}
 					>
-						<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }]}>
+						<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }, this.props.rowStyle]}>
 							{item}
 						</Text>
 					</TouchableHighlight>
@@ -305,12 +338,12 @@ const styles = StyleSheet.create({
 		width: 80,
 		justifyContent: 'center',
 	},
-	button: {
+	textContainer: {
 		flex: 1,
 		flexDirection: 'column',
 		justifyContent: 'space-between',
 	},
-	buttonText: {
+	textStyle: {
 		textAlign: 'center',
 		fontSize: 12,
 		flexGrow: 1,
@@ -355,6 +388,7 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		paddingHorizontal: 6,
 		paddingVertical: 10,
+		height: 32,
 		color: 'gray',
 		backgroundColor: 'white',
 		textAlign: 'center',

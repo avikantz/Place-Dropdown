@@ -12,22 +12,25 @@ import {
 	View,
 	Text,
 	FlatList,
-	TouchableNativeFeedback,
 	TouchableWithoutFeedback,
 	TouchableHighlight,
 	Modal,
 	TouchableOpacity,
 	Image,
-	ActivityIndicator
+	ActivityIndicator,
+	Platform,
+	StatusBar,
 } from 'react-native';
 
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
+import styles from './Styles';
 
 export default class Dropdown extends Component {
 
 	static propTypes = {
-		defaultIndex: PropTypes.number,
-		defaultValue: PropTypes.string,
+		defaultIndex: PropTypes.number,			// -1 initially
+		defaultValue: PropTypes.string,			
 
 		placeholder: PropTypes.string,
 		showsPlaceholder: PropTypes.bool,
@@ -35,25 +38,34 @@ export default class Dropdown extends Component {
 		indicatorImageUri: PropTypes.string,
 		showsIndicator: PropTypes.bool,
 
-		style: PropTypes.object,
-		dropdownStyle: PropTypes.object,
+		itemsShown: PropTypes.number,			// Number of items shown by the dropdown, minimum of this value and number of items in data; initially 5
 
-		data: PropTypes.array,
+		style: PropTypes.object, 				// Container style
+		placeholderStyle: PropTypes.object, 	// Placeholder text
+		textStyle: PropTypes.object, 			// Row text
+		indicatorStyle: PropTypes.object, 		// Indicator
+		rowStyle: PropTypes.object, 			// Dropdown rows
+		dropdownStyle: PropTypes.object, 		// Dropdown container
+		modalStyle: PropTypes.object, 			// Modal dropdown
 
-		onSelect: PropTypes.func
+		data: PropTypes.array,					// Array of items to display
+
+		onSelect: PropTypes.func				// Callback; returns 'item' and 'index'
 	};
 
 	static defaultProps = {
 		defaultIndex: -1,
-		defaultValue: 'Select...',
+		defaultValue: ' ',
 
 		placeholder: 'Select',
 		showsPlaceholder: false,
 
+		itemsShown: 5,
+
 		indicatorImageUri: 'https://i.imgur.com/RVuQJh0.png',
 		showsIndicator: true,
 
-		data: ['1', '2', '3', '4', '5', '6', '7', '8']
+		data: ['1', '2', '3', '4']
 	};
 
 	constructor(props) {
@@ -66,23 +78,31 @@ export default class Dropdown extends Component {
 
 		this.state = {
 			selectedIndex: props.defaultIndex,
-			selectedValue: props.defaultValue,
+			selectedValue: props.showsPlaceholder ? ' ' : props.defaultValue,
 			showDropdown: false,
 			loading: props.data === null || props.data === undefined,
+			placeholderTransfromValue: props.defaultIndex === -1 ? 1 : 0,
 		};
 	}
 
 	componentWillReceiveProps(newProps) {
-		let selectedValue = this._nextValue == null ? this.state.selectedValue : this._nextValue.toString();
-		let selectedIndex = this._nextIndex == null ? this.state.selectedIndex : this._nextIndex;
+		let selectedValue = this._nextValue === null ? this.state.selectedValue : this._nextValue.toString();
+		let selectedIndex = this._nextIndex === null ? this.state.selectedIndex : this._nextIndex;
 		if (selectedIndex < 0) {
 			selectedIndex = newProps.defaultIndex;
 			if (selectedIndex < 0) {
-				selectedValue = newProps.defaultValue;
+				selectedValue = newProps.showsPlaceholder ? ' ' : newProps.defaultValue;
 			}
 		}
 		this._nextValue = null;
 		this._nextIndex = null;
+
+		if (selectedIndex === -1) {
+			this.animatePlaceholderToValue(1);
+
+		} else {
+			this.animatePlaceholderToValue(0);
+		}
 
 		this.setState({
 			loading: newProps.data == null,
@@ -91,13 +111,25 @@ export default class Dropdown extends Component {
 		});
 	}
 
+	animatePlaceholderToValue(value) {
+		if (this.state.selectedIndex > -1) {
+			this.setState({placeholderTransfromValue: 0});
+			return;
+		}
+		if (Math.abs(this.state.placeholderTransfromValue - value) <= 0.01) { 
+			this.setState({placeholderTransfromValue: value});
+			return;
+		}
+		setTimeout(() => {
+			this.setState({ placeholderTransfromValue: this.state.placeholderTransfromValue + (value === 0 ? -1/15 : 1/15) })
+			this.animatePlaceholderToValue(value);
+		}, 1/2000);
+	}
+
 	render() {
 		return (
 			<View {...this.props}>
-				<View style={[styles.container, this.props.style]} ref={button => this._viewRef = button}>
-					{this._renderPlaceholder()}
-					{this._renderButton()}
-				</View>
+				{this._renderButton()}
 				{this._renderModal()}
 			</View>
 		)
@@ -113,7 +145,10 @@ export default class Dropdown extends Component {
 	}
 
 	show() {
-		console.log('Showing dropdown.');
+		console.log('showing dropdown');
+		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
+			this.animatePlaceholderToValue(0);
+		}
 		this._updatePosition(() => {
 			this.setState({
 				showDropdown: true
@@ -122,7 +157,10 @@ export default class Dropdown extends Component {
 	}
 
 	hide() {
-		console.log('Hiding dropdown.');
+		console.log('hiding dropdown');
+		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
+			this.animatePlaceholderToValue(1);
+		}
 		this.setState({
 			showDropdown: false
 		});
@@ -130,7 +168,7 @@ export default class Dropdown extends Component {
 
 	select(idx) {
 		let value = this.props.defaultValue;
-		if (idx === null || this.props.data == null || idx >= this.props.data.length) {
+		if (idx === null || (this.props.data == null && idx >= this.props.data.length)) {
 			idx = this.props.defaultIndex;
 		}
 
@@ -148,48 +186,45 @@ export default class Dropdown extends Component {
 	}
 
 	_renderButton() {
-		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : { };
+		var placeStyle = this.props.showsPlaceholder ? { textAlign: 'left' } : {};
 		return (
-			<TouchableOpacity
+			<TouchableWithoutFeedback
 				onPress={() => {
 					this.show();
 				}}
 			>
-				<View style={styles.button}>
-					<Text style={[styles.buttonText, placeStyle]} numberOfLines={1}>
-						{this.state.selectedValue}
-					</Text>
+				<View style={[styles.container, this.props.style]} ref={v => this._viewRef = v}>
+					<View style={styles.textContainer}>
+						{this._renderPlaceholder()}
+						<Text style={[styles.textStyle, placeStyle, this.props.textStyle]} numberOfLines={1}>
+							{this.state.selectedValue}
+						</Text>
+					</View>
 					{this._renderIndicator()}
 				</View>
-			</TouchableOpacity>
+			</TouchableWithoutFeedback>
 		)
 	}
 
 	_renderIndicator() {
 		if (this.props.showsIndicator) {
-			// console.log('showing indicator');
 			return (
-				<Image source={{ uri: this.props.indicatorImageUri }} style={styles.indicator} />
+				<Image source={{ uri: this.props.indicatorImageUri }} style={[styles.indicator, this.props.indicatorStyle]} />
 			)
 		}
-		return (
-			<View />
-		)
 	}
 
 	_renderPlaceholder() {
 		if (this.props.showsPlaceholder) {
+			var placeStyle = (!this.state.selectedIndex || this.state.selectedIndex == -1) ? { transform: [ { translateY: parseInt(9.0 * this.state.placeholderTransfromValue) }, { translateX: parseInt(8.0 * this.state.placeholderTransfromValue) }, { scaleX: Math.max(this.state.placeholderTransfromValue * 4/3, 1) }, { scaleY: Math.max(this.state.placeholderTransfromValue * 4/3, 1) } ] } : {};
 			return (
-				<View style={styles.placeholderContainer}>
-					<Text style={styles.placeholderText}>
+				<View style={[styles.placeholderContainer, placeStyle]}>
+					<Text style={[styles.placeholderText, this.props.placeholderStyle]}>
 						{this.props.placeholder}
 					</Text>
 				</View>
 			)
 		}
-		return (
-			<View />
-		)
 	}
 
 	_renderModal() {
@@ -208,7 +243,7 @@ export default class Dropdown extends Component {
 						onPress={() => {
 							this.hide();
 						}}>
-						<View style={styles.modal}>
+						<View style={[styles.modal, this.props.modalStyle]}>
 							<View style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
 								{this.state.loading ? this._renderLoading() : this._renderDropdown()}
 							</View>
@@ -224,7 +259,7 @@ export default class Dropdown extends Component {
 		const windowWidth = dimensions.width;
 		const windowHeight = dimensions.height;
 
-		const dropdownHeight = 160;
+		const dropdownHeight = (32 + StyleSheet.hairlineWidth) * Math.min(5, this.props.data ? this.props.data.length : 5);
 
 		const bottomSpace = windowHeight - this._viewRefFrame.y - this._viewRefFrame.h;
 		const rightSpace = windowWidth - this._viewRefFrame.x;
@@ -233,16 +268,12 @@ export default class Dropdown extends Component {
 
 		let style = {
 			height: dropdownHeight,
-			top: showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight),
+			top: (showInBottom ? this._viewRefFrame.y + this._viewRefFrame.h : Math.max(0, this._viewRefFrame.y - dropdownHeight)) - (Platform.OS === "android" ? StatusBar.currentHeight : 0),
 		};
 
 		if (showInLeft) {
 			style.left = this._viewRefFrame.x;
 		} else {
-			const dropdownWidth = (this.props.style && StyleSheet.flatten(this.props.dropdownStyle).width) || -1;
-			if (dropdownWidth !== -1) {
-				style.width = dropdownWidth;
-			}
 			style.right = rightSpace - this._viewRefFrame.w;
 		}
 
@@ -266,29 +297,29 @@ export default class Dropdown extends Component {
 				scrollEnabled={true}
 				style={styles.list}
 				data={this.props.data}
-				renderItem={ ({ item, index }) => (
-						<TouchableHighlight
-							highlighted={(index == this.state.selectedIndex)}
-							onPress={() => {
-								const { onSelect } = this.props;
-								if (!onSelect || onSelect(item, index) !== false) {
-									this._nextValue = item;
-									this._nextIndex = index;
-									this.setState({
-										selectedValue: item.toString(),
-										selectedIndex: index,
-									});
-									this.hide();
-								}
-							}}
-						>
-							<Text style={styles.rowText}>
-								{item}
-							</Text>
-						</TouchableHighlight>
-					)
+				renderItem={({ item, index }) => (
+					<TouchableHighlight
+						highlighted={(index == this.state.selectedIndex)}
+						onPress={() => {
+							const { onSelect } = this.props;
+							if (!onSelect || onSelect(item, index) !== false) {
+								this._nextValue = item;
+								this._nextIndex = index;
+								this.setState({
+									selectedValue: item.toString(),
+									selectedIndex: index,
+								});
+								this.hide();
+							}
+						}}
+					>
+						<Text style={[styles.rowText, { backgroundColor: (index % 2 === 0) ? '#f6f6f6' : '#ffffff' }, this.props.rowStyle]}>
+							{item}
+						</Text>
+					</TouchableHighlight>
+				)
 				}
-				keyExtractor={ item => item }
+				keyExtractor={item => item}
 				automaticallyAdjustContentInsets={false}
 				showsVerticalScrollIndicator={true}
 				keyboardShouldPersistTaps={this.props.keyboardShouldPersistTaps}
@@ -297,75 +328,3 @@ export default class Dropdown extends Component {
 	}
 
 }
-
-const styles = StyleSheet.create({
-	container: {
-		padding: 8,
-		position: 'absolute',
-		flex: 1,
-		flexDirection: 'column',
-		borderWidth: 0.7,
-		borderColor: '#959595',
-		width: 80,
-	},
-	button: {
-		flex: 1,
-		flexDirection: 'row',
-		justifyContent: 'space-between'
-	},
-	buttonText: {
-		textAlign: 'center',
-		fontSize: 12,
-		flexGrow: 1,
-	},
-	indicator: {
-		width: 9,
-		height: 9,
-		margin: 3,
-		alignSelf: 'flex-end',
-	},
-	placeholderContainer: {
-		alignSelf: 'flex-start',
-		height: 12,
-		marginBottom: 4,
-	},
-	placeholderText: {
-		textAlign: 'left',
-		fontSize: 9,
-	},
-	modal: {
-		flexGrow: 1,
-	},
-	loading: {
-		alignSelf: 'center'
-	},
-	dropdown: {
-		position: 'absolute',
-		height: (32 + StyleSheet.hairlineWidth) * 5,
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: 'lightgray',
-		justifyContent: 'center',
-		borderColor: 'lightgray',
-		borderRadius: 2,
-		backgroundColor: 'white',
-	},
-	list: {
-		flex: 1,
-	},
-	separator: {
-		height: StyleSheet.hairlineWidth,
-		backgroundColor: 'lightgray'
-	},
-	rowText: {
-		fontSize: 10,
-		paddingHorizontal: 6,
-		paddingVertical: 10,
-		color: 'gray',
-		backgroundColor: 'white',
-		textAlign: 'center',
-		textAlignVertical: 'center'
-	},
-	highlightedRowText: {
-		color: 'black'
-	},
-});
