@@ -18,6 +18,9 @@ Simple dropdown for a react-naitve application.
 
 ## Installation
 
+- Via npm, `npm install place-dropdown`
+- Via yarn, `yarn add place-dropdown`
+
 ## Usage
 
 Import module

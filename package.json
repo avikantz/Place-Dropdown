@@ -1,6 +1,6 @@
 {
-  "name": "blue-dropdown",
-  "version": "1.0.0",
+  "name": "place-dropdown",
+  "version": "1.0.2",
   "description": "Alternative dropdown for react native",
   "main": "index.js",
   "scripts": {
@@ -21,13 +21,17 @@
   ],
   "author": "avikantz",
   "license": "MIT",
-  "dependencies": {
-    "prop-types": "^15.6.0",
-    "react": "^16.2.0",
-    "react-native": "^0.52.1"
-  },
   "directories": {
     "example": "example"
   },
+  "bugs": {
+    "url": "https://github.com/avikantz/Place-Dropdown/issues",
+    "email": "avikantsainidbz@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avikantz/Place-Dropdown/.git"
+  },
+  "homepage": "https://github.com/avikantz/Place-Dropdown/",
   "devDependencies": {}
 }
