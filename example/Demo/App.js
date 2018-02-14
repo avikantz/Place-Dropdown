@@ -51,25 +51,16 @@ export default class App extends React.Component {
           }}
         />
         <Dropdown
-          // showsPlaceholder={true}
+          showsPlaceholder={false}
           placeholder='Ring Size'
-          defaultValue='Select...'
+          defaultValue={'1'}
+          defaultIndex={0}
           showsIndicator={true}
-          data={this.state.siz}
+          data={Array(10).fill().map((e, i) => (i + 1).toString())}
           onSelect={(item, index) => {
             console.log('Selected value: ' + item + ', at index: ' + index);
           }}
-          style={{ 
-            width: 96
-          }}
-          dropdownStyle={{
-            shadowOpacity: 0.3,
-            shadowRadius: 2,
-            shadowOffset: {
-              height: 1,
-            },
-            elevation: 6,
-          }}
+          style={styles.dropdownContainer}
         />
       </View>
     );
@@ -93,5 +84,11 @@ const styles = StyleSheet.create({
       height: 1,
     },
     elevation: 4,
-  }
+  },
+  dropdownContainer: {
+    width: 60,
+    height: 24,
+    borderColor: '#959595',
+    alignItems: 'center',
+},
 });
