@@ -20,7 +20,6 @@ import {
 	ActivityIndicator,
 	Platform,
 	StatusBar,
-	ViewPropTypes,
 } from 'react-native';
 
 import PropTypes from 'prop-types';
@@ -41,13 +40,13 @@ export default class Dropdown extends Component {
 
 		itemsShown: PropTypes.number,			// Number of items shown by the dropdown, minimum of this value and number of items in data; initially 5
 
-		style: (ViewPropTypes || View.propTypes).style,				// Container style
-		placeholderStyle:(ViewPropTypes || View.propTypes).style,	// Placeholder text
-		textStyle: (ViewPropTypes || View.propTypes).style,			// Row text
-		indicatorStyle: (ViewPropTypes || View.propTypes).style,	// Indicator
-		rowStyle: (ViewPropTypes || View.propTypes).style,			// Dropdown rows
-		dropdownStyle: (ViewPropTypes || View.propTypes).style,		// Dropdown container
-		modalStyle: (ViewPropTypes || View.propTypes).style,		// Modal dropdown
+		style: PropTypes.object, 				// Container style
+		placeholderStyle: PropTypes.object, 	// Placeholder text
+		textStyle: PropTypes.object, 			// Row text
+		indicatorStyle: PropTypes.object, 		// Indicator
+		rowStyle: PropTypes.object, 			// Dropdown rows
+		dropdownStyle: PropTypes.object, 		// Dropdown container
+		modalStyle: PropTypes.object, 			// Modal dropdown
 
 		data: PropTypes.array,					// Array of items to display
 
@@ -66,7 +65,7 @@ export default class Dropdown extends Component {
 		indicatorImageUri: 'https://i.imgur.com/RVuQJh0.png',
 		showsIndicator: true,
 
-		data: ['1', '2', '3', '4']
+		data: []
 	};
 
 	constructor(props) {
@@ -95,12 +94,13 @@ export default class Dropdown extends Component {
 				selectedValue = newProps.showsPlaceholder ? ' ' : newProps.defaultValue;
 			}
 		}
+		selectedIndex = newProps.selectedIndex ? newProps.selectedIndex : selectedIndex
+		selectedValue = newProps.selectedValue ? newProps.selectedValue : selectedValue
 		this._nextValue = null;
 		this._nextIndex = null;
 
 		if (selectedIndex === -1) {
 			this.animatePlaceholderToValue(1);
-
 		} else {
 			this.animatePlaceholderToValue(0);
 		}
@@ -146,7 +146,6 @@ export default class Dropdown extends Component {
 	}
 
 	show() {
-		console.log('showing dropdown');
 		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
 			this.animatePlaceholderToValue(0);
 		}
@@ -158,7 +157,6 @@ export default class Dropdown extends Component {
 	}
 
 	hide() {
-		console.log('hiding dropdown');
 		if (!this.state.selectedIndex || this.state.selectedIndex === -1) {
 			this.animatePlaceholderToValue(1);
 		}
