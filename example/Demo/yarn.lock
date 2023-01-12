@@ -4564,9 +4564,9 @@ pkg-dir@^2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-place-dropdown@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/place-dropdown/-/place-dropdown-1.0.1.tgz#4db47247008b31e510934fa5bef7b6f43a4be4dc"
+place-dropdown@^1.0.2:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/place-dropdown/-/place-dropdown-1.0.4.tgz#c445fe7b0c47fb3467e07c8f1821cd30185a3b49"
 
 plist@2.0.1:
   version "2.0.1"
@@ -4863,9 +4863,9 @@ react-native-vector-icons@4.4.2:
     prop-types "^15.5.10"
     yargs "^8.0.2"
 
-react-native@0.52.0:
-  version "0.52.0"
-  resolved "https://registry.yarnpkg.com/react-native/-/react-native-0.52.0.tgz#9784663a2aa40b30c87d4c9c06ef26cf8d419d91"
+react-native@^0.52.1:
+  version "0.52.3"
+  resolved "https://registry.yarnpkg.com/react-native/-/react-native-0.52.3.tgz#e11698e19bbc8f98135f82d40ac82ccb046641fd"
   dependencies:
     absolute-path "^0.0.0"
     art "^0.10.0"
